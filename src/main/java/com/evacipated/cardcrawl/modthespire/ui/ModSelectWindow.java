@@ -8,12 +8,13 @@ import javax.swing.border.MatteBorder;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.*;
-import java.net.MalformedURLException;
+import java.io.File;
+import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 public class ModSelectWindow extends JFrame
 {
@@ -262,13 +263,55 @@ public class ModSelectWindow extends JFrame
             });
             tCfg.start();
 
-            Thread t = new Thread(() -> {
-                // Build array of selected mods
-                File[] selectedMods = modList.getCheckedMods();
+            String osName = System.getProperty("os.name");
+            if (osName == null) {
+                System.err.println("os.name not found");
+                System.exit(1);
+            }
+            System.out.println("os.name="+osName);
+            boolean isMac = false;
+            if (osName.toLowerCase().contains("mac os")) {
+                System.out.println("Mac OS detected!");
+                isMac = true;
+            }
 
-                Loader.runMods(selectedMods);
-            });
-            t.start();
+            // LWJGL 3 requires the `-XstartOnFirstThread` JVM option when launching on OSX yet Swing can't handle that
+            // so we can't launch the game in a thread if running on OSX so as a workaround we launch a new process.
+            // https://github.com/libgdx/libgdx/issues/3673
+            if (isMac){
+                String mts_path = "ModTheSpire.jar"; // TODO: change this to be the actual path
+                String jvm = System.getProperty("java.home");
+                System.out.println("Executing jar from: "+jvm);
+                System.out.println("JVM="+jvm);
+                List<String> cmd = new ArrayList<>();
+                cmd.add("jre/bin/java");
+                cmd.add("-XstartOnFirstThread"); // have to do special launcher options after libgdx199
+                cmd.add("-cp");
+                cmd.add(mts_path);
+                cmd.add("com.evacipated.cardcrawl.modthespire.Loader");
+                List<String> modPaths = new ArrayList<>();
+                for (File mod : modList.getCheckedMods()){
+                    modPaths.add(mod.getPath());
+                }
+                cmd.add("--run-with-mods");
+                cmd.add(String.join(",", modPaths));
+
+                System.out.println("Launching game with: "+String.join(" ", cmd));
+                ProcessBuilder pb = new ProcessBuilder(cmd);
+                try {
+                    pb.start();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                Thread t = new Thread(() -> {
+                    // Build array of selected mods
+                    File[] selectedMods = modList.getCheckedMods();
+
+                    Loader.runMods(selectedMods);
+                });
+                t.start();
+            }
         });
         if (Loader.STS_BETA && !Loader.allowBeta) {
             playBtn.setEnabled(false);

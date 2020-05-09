@@ -51,6 +51,7 @@ public class Loader
     public static boolean STS_BETA = false;
     public static boolean allowBeta = false;
     public static String profileArg = null;
+    public static boolean allowBeta = true;
 
     static String[] ARGS;
     private static ModSelectWindow ex;
@@ -118,6 +119,30 @@ public class Loader
             System.out.println("Launched using JRE 51");
         }
 
+        List<String> argList = Arrays.asList(args);
+        // Example Usage: "--run-with-mods mod1,mod2,mod3"
+        if (argList.contains("--run-with-mods")) {
+            int index = argList.indexOf("--run-with-mods");
+            int modArgIndex = index + 1;
+            if (argList.size() < modArgIndex + 1) {
+                System.err.println("ERROR: No args specfied with \"--run-with-mods\".");
+                System.err.println("Example Usage: --run-with-mods mod1,mod2,mod3");
+                System.exit(1);
+            }
+            String modsStr = argList.get(modArgIndex);
+            String[] modNames = modsStr.split(",");
+            File[] mods = new File[modNames.length];
+            for (int i = 0; i < modNames.length; i++){
+                System.out.println("mod="+modNames[i]);
+                mods[i] = new File(modNames[i]);
+                if (!mods[i].exists()) {
+                    System.err.println("ERROR: Mod '"+mods[i]+"' does not exist");
+                    System.exit(1);
+                }
+            }
+            Loader.runMods(mods);
+            System.exit(0);
+        }
         ARGS = args;
         try {
             Properties defaults = new Properties();
