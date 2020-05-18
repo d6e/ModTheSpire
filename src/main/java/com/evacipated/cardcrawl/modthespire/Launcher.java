@@ -13,9 +13,6 @@ import javassist.ClassPool;
 import javassist.LoaderClassPath;
 import org.objectweb.asm.ClassReader;
 
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.WindowEvent;
 import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -23,12 +20,10 @@ import java.lang.reflect.Type;
 import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.List;
-import java.util.Timer;
 import java.util.*;
 import java.util.function.BiConsumer;
 
-public class Loader
+public class Launcher
 {
     public static boolean DEBUG = false;
     public static boolean OUT_JAR = false;
@@ -90,36 +85,6 @@ public class Loader
     {
         List<String> argList = Arrays.asList(args);
 
-        // Restart MTS if jre1.8.0_51 is detected
-        // For those people with old laptops and OpenGL problems
-        if (!Arrays.asList(args).contains("--jre51") && new File(JRE_51_DIR).exists()) {
-            System.out.println("JRE 51 exists, restarting using it...");
-            try {
-                String path = Loader.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-                path = URLDecoder.decode(path, "utf-8");
-                path = new File(path).getPath();
-
-                String[] newArgs = new String[args.length + 4];
-                newArgs[0] = SteamSearch.findJRE51();
-                newArgs[1] = "-jar";
-                newArgs[2] = path;
-                newArgs[3] = "--jre51";
-                System.arraycopy(args, 0, newArgs, 4, args.length);
-                ProcessBuilder pb = new ProcessBuilder(
-                    newArgs
-                );
-                pb.redirectOutput(new File("sendToDevs", "mts_process_launch.log"));
-                pb.redirectErrorStream(true);
-                pb.start();
-                System.exit(0);
-            } catch (IOException e) {
-                e.printStackTrace();
-                System.exit(3);
-            }
-        } else if (Arrays.asList(args).contains("--jre51")) {
-            System.out.println("Launched using JRE 51");
-        }
-
         // Example Usage: "--run-with-mods mod1,mod2,mod3"
         if (argList.contains("--run-with-mods")) {
             int index = argList.indexOf("--run-with-mods");
@@ -130,6 +95,10 @@ public class Loader
                 System.exit(1);
             }
             String modsStr = argList.get(modArgIndex);
+            if (modsStr.trim().length() == 0) {
+                System.out.println("No mods specified.");
+                System.exit(1);
+            }
             String[] modNames = modsStr.split(",");
             File[] mods = new File[modNames.length];
             for (int i = 0; i < modNames.length; i++){
@@ -210,8 +179,6 @@ public class Loader
                         checkFileInfo(new File("SlayTheSpire.app"));
                         checkFileInfo(new File("SlayTheSpire.app/Contents"));
                         checkFileInfo(new File("SlayTheSpire.app/Contents/Resources"));
-
-                        JOptionPane.showMessageDialog(null, "Unable to find '" + STS_JAR + "'");
                         return;
                     } else {
                         System.out.println("Using Mac version at: " + MAC_STS_JAR);
@@ -337,27 +304,6 @@ public class Loader
         }
 
         findGameVersion();
-
-        EventQueue.invokeLater(() -> {
-            ALLMODINFOS = getAllMods(workshopInfos);
-            ex = new ModSelectWindow(ALLMODINFOS, skipLauncher);
-            ex.setVisible(true);
-
-            ex.warnAboutMissingVersions();
-
-            String java_version = System.getProperty("java.version");
-            if (!java_version.startsWith("1.8")) {
-                String msg = "ModTheSpire requires Java version 8 to run properly.\nYou are currently using Java " + java_version;
-                JOptionPane.showMessageDialog(null, msg, "Warning", JOptionPane.WARNING_MESSAGE);
-            }
-
-            ex.startCheckingForMTSUpdate();
-        });
-    }
-
-    public static void closeWindow()
-    {
-        ex.dispatchEvent(new WindowEvent(ex, WindowEvent.WINDOW_CLOSING));
     }
 
     // runMods - sets up the ClassLoader, sets the isModded flag and launches the game
@@ -466,25 +412,10 @@ public class Loader
             Class<?> cls = loader.loadClass("com.megacrit.cardcrawl.desktop.DesktopLauncher");
             Method method = cls.getDeclaredMethod("main", String[].class);
             method.invoke(null, (Object) ARGS);
-            if (!DEBUG) {
-                new Timer().schedule(
-                    new TimerTask()
-                    {
-                        @Override
-                        public void run()
-                        {
-                            ex.setState(Frame.ICONIFIED);
-                        }
-                    },
-                    1000
-                );
-            }
         } catch (MissingDependencyException e) {
             System.err.println("ERROR: " + e.getMessage());
-            JOptionPane.showMessageDialog(null, e.getMessage(), "Missing Dependency", JOptionPane.ERROR_MESSAGE);
         } catch (DuplicateModIDException e) {
             System.err.println("ERROR: " + e.getMessage());
-            JOptionPane.showMessageDialog(null, e.getMessage(), "Duplicate Mod ID", JOptionPane.ERROR_MESSAGE);
         } catch (Exception e) {
             e.printStackTrace();
         }

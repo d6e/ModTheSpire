@@ -10,8 +10,10 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -268,7 +270,6 @@ public class ModSelectWindow extends JFrame
                 System.err.println("os.name not found");
                 System.exit(1);
             }
-            System.out.println("os.name="+osName);
             boolean isMac = false;
             if (osName.toLowerCase().contains("mac os")) {
                 System.out.println("Mac OS detected!");
@@ -279,7 +280,14 @@ public class ModSelectWindow extends JFrame
             // so we can't launch the game in a thread if running on OSX so as a workaround we launch a new process.
             // https://github.com/libgdx/libgdx/issues/3673
             if (isMac){
-                String mts_path = "ModTheSpire.jar"; // TODO: change this to be the actual path
+                URL location = ModSelectWindow.class.getProtectionDomain().getCodeSource().getLocation();
+                String mts_jar_path = null;
+                try {
+                    mts_jar_path = java.net.URLDecoder.decode(location.getFile(), StandardCharsets.UTF_8.name());
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+                System.out.println("mts_jar_path="+mts_jar_path);
                 String jvm = System.getProperty("java.home");
                 System.out.println("Executing jar from: "+jvm);
                 System.out.println("JVM="+jvm);
@@ -287,8 +295,8 @@ public class ModSelectWindow extends JFrame
                 cmd.add("jre/bin/java");
                 cmd.add("-XstartOnFirstThread"); // have to do special launcher options after libgdx199
                 cmd.add("-cp");
-                cmd.add(mts_path);
-                cmd.add("com.evacipated.cardcrawl.modthespire.Loader");
+                cmd.add(mts_jar_path);
+                cmd.add("com.evacipated.cardcrawl.modthespire.Launcher");
                 List<String> modPaths = new ArrayList<>();
                 for (File mod : modList.getCheckedMods()){
                     modPaths.add(mod.getPath());
@@ -297,7 +305,7 @@ public class ModSelectWindow extends JFrame
                 cmd.add(String.join(",", modPaths));
 
                 System.out.println("Launching game with: "+String.join(" ", cmd));
-                ProcessBuilder pb = new ProcessBuilder(cmd);
+                ProcessBuilder pb = new ProcessBuilder(cmd).inheritIO();
                 try {
                     pb.start();
                 } catch (IOException e) {
