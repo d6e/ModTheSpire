@@ -118,12 +118,12 @@ public class Patcher {
         return modInfos;
     }
 
-    public static List<Iterable<String>> findPatches(URL[] urls) throws IOException
+    public static List<Set<String>> findPatches(URL[] urls) throws IOException
     {
         return findPatches(urls, null);
     }
 
-    public static List<Iterable<String>> findPatches(ModInfo[] modInfos) throws IOException
+    public static List<Set<String>> findPatches(ModInfo[] modInfos) throws IOException
     {
         URL[] urls = new URL[modInfos.length];
         for (int i = 0; i < modInfos.length; i++) {
@@ -132,9 +132,9 @@ public class Patcher {
         return findPatches(urls, modInfos);
     }
 
-    public static List<Iterable<String>> findPatches(URL[] urls, ModInfo[] modInfos) throws IOException
+    public static List<Set<String>> findPatches(URL[] urls, ModInfo[] modInfos) throws IOException
     {
-        List<Iterable<String>> patchSetList = new ArrayList<>();
+        List<Set<String>> patchSetList = new ArrayList<>();
         for (int i = 0; i < urls.length; ++i) {
             if (modInfos == null || modInfos[i].MTS_Version.compareTo(Loader.MTS_VERSION) <= 0) {
                 AnnotationDB db;
@@ -331,9 +331,9 @@ public class Patcher {
         return count;
     }
 
-    public static void injectPatches(ClassLoader loader, ClassPool pool, List<Iterable<String>> class_names) throws Exception
+    public static void injectPatches(ClassLoader loader, ClassPool pool, List<Set<String>> class_names) throws Exception
     {
-        for (Iterable<String> it : class_names) {
+        for (Set<String> it : class_names) {
             injectPatches(loader, pool, it);
             PatchInfo.nextMod();
         }
