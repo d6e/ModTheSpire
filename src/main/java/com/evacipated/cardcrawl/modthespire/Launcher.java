@@ -84,34 +84,6 @@ public class Launcher
     public static void main(String[] args)
     {
         List<String> argList = Arrays.asList(args);
-
-        // Example Usage: "--run-with-mods mod1,mod2,mod3"
-        if (argList.contains("--run-with-mods")) {
-            int index = argList.indexOf("--run-with-mods");
-            int modArgIndex = index + 1;
-            if (argList.size() < modArgIndex + 1) {
-                System.err.println("ERROR: No args specfied with \"--run-with-mods\".");
-                System.err.println("Example Usage: --run-with-mods mod1,mod2,mod3");
-                System.exit(1);
-            }
-            String modsStr = argList.get(modArgIndex);
-            if (modsStr.trim().length() == 0) {
-                System.out.println("No mods specified.");
-                System.exit(1);
-            }
-            String[] modNames = modsStr.split(",");
-            File[] mods = new File[modNames.length];
-            for (int i = 0; i < modNames.length; i++){
-                System.out.println("mod="+modNames[i]);
-                mods[i] = new File(modNames[i]);
-                if (!mods[i].exists()) {
-                    System.err.println("ERROR: Mod '"+mods[i]+"' does not exist");
-                    System.exit(1);
-                }
-            }
-            Loader.runMods(mods);
-            System.exit(0);
-        }
         ARGS = args;
         try {
             Properties defaults = new Properties();
@@ -152,6 +124,34 @@ public class Launcher
         } catch (IOException e) {
             e.printStackTrace();
             System.exit(-1);
+        }
+
+        // Example Usage: "--run-with-mods mod1,mod2,mod3"
+        if (argList.contains("--run-with-mods")) {
+            int index = argList.indexOf("--run-with-mods");
+            int modArgIndex = index + 1;
+            if (argList.size() < modArgIndex + 1) {
+                System.err.println("ERROR: No args specfied with \"--run-with-mods\".");
+                System.err.println("Example Usage: --run-with-mods mod1,mod2,mod3");
+                System.exit(1);
+            }
+            String modsStr = argList.get(modArgIndex);
+            if (modsStr.trim().length() == 0) {
+                System.out.println("No mods specified.");
+                System.exit(1);
+            }
+            String[] modNames = modsStr.split(",");
+            File[] mods = new File[modNames.length];
+            for (int i = 0; i < modNames.length; i++){
+                System.out.println("mod="+modNames[i]);
+                mods[i] = new File(modNames[i]);
+                if (!mods[i].exists()) {
+                    System.err.println("ERROR: Mod '"+mods[i]+"' does not exist");
+                    System.exit(1);
+                }
+            }
+            runMods(mods);
+            System.exit(0);
         }
 
         // Check if we are desktop-1.0.jar
@@ -333,7 +333,7 @@ public class Launcher
                 pool.insertClassPath(new LoaderClassPath(tmpPatchingLoader));
                 tmpPatchingLoader.addStreamToClassPool(pool); // Inserts infront of above path
 
-                MODINFOS = Patcher.sideloadMods(tmpPatchingLoader, loader, pool, ALLMODINFOS, MODINFOS);
+                MODINFOS = Patcher.sideloadMods(MTS_VERSION, tmpPatchingLoader, loader, pool, ALLMODINFOS, MODINFOS);
 
                 // Patch enums
                 System.out.printf("Patching enums...");

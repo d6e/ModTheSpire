@@ -387,7 +387,7 @@ public class Loader
                 pool.insertClassPath(new LoaderClassPath(tmpPatchingLoader));
                 tmpPatchingLoader.addStreamToClassPool(pool); // Inserts infront of above path
 
-                MODINFOS = Patcher.sideloadMods(tmpPatchingLoader, loader, pool, ALLMODINFOS, MODINFOS);
+                MODINFOS = Patcher.sideloadMods(MTS_VERSION, tmpPatchingLoader, loader, pool, ALLMODINFOS, MODINFOS);
 
                 // Patch enums
                 System.out.printf("Patching enums...");

@@ -4,6 +4,7 @@ import com.evacipated.cardcrawl.modthespire.lib.*;
 import com.evacipated.cardcrawl.modthespire.patcher.*;
 import com.evacipated.cardcrawl.modthespire.patcher.InsertPatchInfo.LineNumberAndPatchType;
 import com.evacipated.cardcrawl.modthespire.patcher.javassist.MyCodeConverter;
+import com.vdurmont.semver4j.Semver;
 import javassist.*;
 import javassist.bytecode.DuplicateMemberException;
 import javassist.expr.ExprEditor;
@@ -56,12 +57,12 @@ public class Patcher {
         }
     }
 
-    public static ModInfo[] sideloadMods(MTSClassLoader tmpPatchingLoader, MTSClassLoader loader, ClassPool pool, ModInfo[] allModInfos, ModInfo[] modInfos)
+    public static ModInfo[] sideloadMods(Semver mts_version, MTSClassLoader tmpPatchingLoader, MTSClassLoader loader, ClassPool pool, ModInfo[] allModInfos, ModInfo[] modInfos)
         throws IOException, NotFoundException, ClassNotFoundException
     {
         List<String> sideloadList = new ArrayList<>();
         for (ModInfo modInfo : modInfos) {
-            if (modInfo.MTS_Version.compareTo(Loader.MTS_VERSION) <= 0) {
+            if (modInfo.MTS_Version.compareTo(mts_version) <= 0) {
                 AnnotationDB db;
                 if (annotationDBMap.containsKey(modInfo.jarURL)) {
                     db = annotationDBMap.get(modInfo.jarURL);
