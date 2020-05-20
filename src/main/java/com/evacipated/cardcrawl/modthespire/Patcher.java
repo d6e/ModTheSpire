@@ -145,8 +145,14 @@ public class Patcher {
                     annotationDBMap.put(urls[i], db);
                 }
                 db.scanArchives(urls[i]);
-                patchSetList.add(db.getAnnotationIndex().get(SpirePatch.class.getName()));
-                patchSetList.add(db.getAnnotationIndex().get(SpirePatches.class.getName()));
+                Set<String> patchSet1 = db.getAnnotationIndex().get(SpirePatch.class.getName());
+                if (patchSet1 != null){
+                    patchSetList.add(patchSet1);
+                }
+                Set<String> patchSet2 = db.getAnnotationIndex().get(SpirePatches.class.getName());
+                if (patchSet2 != null){
+                    patchSetList.add(patchSet2);
+                }
             } else {
                 String str = "ERROR: " + modInfos[i].Name + " requires ModTheSpire v" + modInfos[i].MTS_Version + " or greater!";
                 System.out.println(str);
