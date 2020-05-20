@@ -398,10 +398,10 @@ public class Loader
 
                 // Find and inject core patches
                 System.out.println("Finding core patches...");
-                Patcher.injectPatches(tmpPatchingLoader, pool, Patcher.findPatches(new URL[]{Loader.class.getResource(Loader.COREPATCHES_JAR)}));
+                Patcher.injectPatches(tmpPatchingLoader, pool, Patcher.findPatches(MTS_VERSION, new URL[]{Loader.class.getResource(Loader.COREPATCHES_JAR)}));
                 // Find and inject mod patches
                 System.out.println("Finding patches...");
-                Patcher.injectPatches(tmpPatchingLoader, pool, Patcher.findPatches(MODINFOS));
+                Patcher.injectPatches(tmpPatchingLoader, pool, Patcher.findPatches(MTS_VERSION, MODINFOS));
 
                 Patcher.patchOverrides(tmpPatchingLoader, pool, MODINFOS);
 

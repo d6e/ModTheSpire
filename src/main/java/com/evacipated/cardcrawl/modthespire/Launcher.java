@@ -344,10 +344,13 @@ public class Launcher
 
                 // Find and inject core patches
                 System.out.println("Finding core patches...");
-                Patcher.injectPatches(tmpPatchingLoader, pool, Patcher.findPatches(new URL[]{Loader.class.getResource(Loader.COREPATCHES_JAR)}));
+                List<Set<String>> core_patches = Patcher.findPatches(MTS_VERSION, new URL[]{Launcher.class.getResource(Launcher.COREPATCHES_JAR)});
+                // TODO: make conditional on libgdx199
+                Patcher.injectPatches(tmpPatchingLoader, pool, core_patches);
+
                 // Find and inject mod patches
                 System.out.println("Finding patches...");
-                Patcher.injectPatches(tmpPatchingLoader, pool, Patcher.findPatches(MODINFOS));
+                Patcher.injectPatches(tmpPatchingLoader, pool, Patcher.findPatches(MTS_VERSION, MODINFOS));
 
                 Patcher.patchOverrides(tmpPatchingLoader, pool, MODINFOS);
 

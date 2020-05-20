@@ -118,25 +118,25 @@ public class Patcher {
         return modInfos;
     }
 
-    public static List<Set<String>> findPatches(URL[] urls) throws IOException
+    public static List<Set<String>> findPatches(Semver mts_version, URL[] urls) throws IOException
     {
-        return findPatches(urls, null);
+        return findPatches(mts_version, urls, null);
     }
 
-    public static List<Set<String>> findPatches(ModInfo[] modInfos) throws IOException
+    public static List<Set<String>> findPatches(Semver mts_version, ModInfo[] modInfos) throws IOException
     {
         URL[] urls = new URL[modInfos.length];
         for (int i = 0; i < modInfos.length; i++) {
             urls[i] = modInfos[i].jarURL;
         }
-        return findPatches(urls, modInfos);
+        return findPatches(mts_version, urls, modInfos);
     }
 
-    public static List<Set<String>> findPatches(URL[] urls, ModInfo[] modInfos) throws IOException
+    public static List<Set<String>> findPatches(Semver mts_version, URL[] urls, ModInfo[] modInfos) throws IOException
     {
         List<Set<String>> patchSetList = new ArrayList<>();
         for (int i = 0; i < urls.length; ++i) {
-            if (modInfos == null || modInfos[i].MTS_Version.compareTo(Loader.MTS_VERSION) <= 0) {
+            if (modInfos == null || modInfos[i].MTS_Version.compareTo(mts_version) <= 0) {
                 AnnotationDB db;
                 if (annotationDBMap.containsKey(urls[i])) {
                     db = annotationDBMap.get(urls[i]);
