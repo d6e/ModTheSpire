@@ -17,6 +17,7 @@ import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -345,7 +346,18 @@ public class Launcher
                 // Find and inject core patches
                 System.out.println("Finding core patches...");
                 List<Set<String>> core_patches = Patcher.findPatches(MTS_VERSION, new URL[]{Launcher.class.getResource(Launcher.COREPATCHES_JAR)});
-                // TODO: make conditional on libgdx199
+
+                boolean lwjgl3_enabled = true;
+                try {
+                    loader.findClass("com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration");
+                } catch (ClassNotFoundException | UndeclaredThrowableException e) {
+                    lwjgl3_enabled = false;
+                }
+                if (lwjgl3_enabled) {
+                    for (Set<String> set : core_patches) {
+                        set.removeIf(p -> p.endsWith("DisableGdxForceExit")); // exclude this patch
+                    }
+                }
                 Patcher.injectPatches(tmpPatchingLoader, pool, core_patches);
 
                 // Find and inject mod patches
