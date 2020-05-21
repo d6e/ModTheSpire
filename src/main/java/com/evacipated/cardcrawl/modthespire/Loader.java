@@ -20,6 +20,7 @@ import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -86,6 +87,16 @@ public class Loader
         return POOL;
     }
 
+    private static boolean isLWJGL3Enabled(MTSClassLoader loader){
+        boolean lwjgl3_enabled = true;
+        try {
+            loader.findClass("com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration");
+        } catch (ClassNotFoundException | UndeclaredThrowableException e) {
+            lwjgl3_enabled = false;
+        }
+        return lwjgl3_enabled;
+    }
+
     public static void main(String[] args)
     {
         List<String> argList = Arrays.asList(args);
@@ -120,29 +131,6 @@ public class Loader
             System.out.println("Launched using JRE 51");
         }
 
-        // Example Usage: "--run-with-mods mod1,mod2,mod3"
-        if (argList.contains("--run-with-mods")) {
-            int index = argList.indexOf("--run-with-mods");
-            int modArgIndex = index + 1;
-            if (argList.size() < modArgIndex + 1) {
-                System.err.println("ERROR: No args specfied with \"--run-with-mods\".");
-                System.err.println("Example Usage: --run-with-mods mod1,mod2,mod3");
-                System.exit(1);
-            }
-            String modsStr = argList.get(modArgIndex);
-            String[] modNames = modsStr.split(",");
-            File[] mods = new File[modNames.length];
-            for (int i = 0; i < modNames.length; i++){
-                System.out.println("mod="+modNames[i]);
-                mods[i] = new File(modNames[i]);
-                if (!mods[i].exists()) {
-                    System.err.println("ERROR: Mod '"+mods[i]+"' does not exist");
-                    System.exit(1);
-                }
-            }
-            Loader.runMods(mods);
-            System.exit(0);
-        }
         ARGS = args;
         try {
             Properties defaults = new Properties();
@@ -183,6 +171,30 @@ public class Loader
         } catch (IOException e) {
             e.printStackTrace();
             System.exit(-1);
+        }
+
+        // Example Usage: "--run-with-mods mod1,mod2,mod3"
+        if (argList.contains("--run-with-mods")) {
+            int index = argList.indexOf("--run-with-mods");
+            int modArgIndex = index + 1;
+            if (argList.size() < modArgIndex + 1) {
+                System.err.println("ERROR: No args specfied with \"--run-with-mods\".");
+                System.err.println("Example Usage: --run-with-mods mod1,mod2,mod3");
+                System.exit(1);
+            }
+            String modsStr = argList.get(modArgIndex);
+            String[] modNames = modsStr.split(",");
+            File[] mods = new File[modNames.length];
+            for (int i = 0; i < modNames.length; i++){
+                System.out.println("mod="+modNames[i]);
+                mods[i] = new File(modNames[i]);
+                if (!mods[i].exists()) {
+                    System.err.println("ERROR: Mod '"+mods[i]+"' does not exist");
+                    System.exit(1);
+                }
+            }
+            Loader.runMods(mods);
+            System.exit(0);
         }
 
         // Check if we are desktop-1.0.jar
@@ -367,6 +379,7 @@ public class Loader
             System.out.println("Running with debug mode turned ON...");
             System.out.println();
         }
+        boolean lwjgl3Enabled = false;
         try {
             {
                 ModInfo[] modInfos = buildInfoArray(modJars);
@@ -378,6 +391,7 @@ public class Loader
             printMTSInfo();
 
             MTSClassLoader loader = new MTSClassLoader(Loader.class.getResourceAsStream(COREPATCHES_JAR), buildUrlArray(MODINFOS), Loader.class.getClassLoader());
+            lwjgl3Enabled = isLWJGL3Enabled(loader);
 
             if (modJars.length > 0) {
                 MTSClassLoader tmpPatchingLoader = new MTSClassLoader(Loader.class.getResourceAsStream(COREPATCHES_JAR), buildUrlArray(MODINFOS), Loader.class.getClassLoader());
@@ -398,7 +412,14 @@ public class Loader
 
                 // Find and inject core patches
                 System.out.println("Finding core patches...");
-                Patcher.injectPatches(tmpPatchingLoader, pool, Patcher.findPatches(MTS_VERSION, new URL[]{Loader.class.getResource(Loader.COREPATCHES_JAR)}));
+
+                List<Set<String>> core_patches = Patcher.findPatches(MTS_VERSION, new URL[]{Launcher.class.getResource(Launcher.COREPATCHES_JAR)});
+                if (lwjgl3Enabled) {
+                    for (Set<String> set : core_patches) {
+                        set.removeIf(p -> p.endsWith("DisableGdxForceExit")); // exclude this patch
+                    }
+                }
+                Patcher.injectPatches(tmpPatchingLoader, pool, core_patches);
                 // Find and inject mod patches
                 System.out.println("Finding patches...");
                 Patcher.injectPatches(tmpPatchingLoader, pool, Patcher.findPatches(MTS_VERSION, MODINFOS));
@@ -466,7 +487,7 @@ public class Loader
             Class<?> cls = loader.loadClass("com.megacrit.cardcrawl.desktop.DesktopLauncher");
             Method method = cls.getDeclaredMethod("main", String[].class);
             method.invoke(null, (Object) ARGS);
-            if (!DEBUG) {
+            if (!DEBUG && !lwjgl3Enabled) {
                 new Timer().schedule(
                     new TimerTask()
                     {
@@ -481,10 +502,10 @@ public class Loader
             }
         } catch (MissingDependencyException e) {
             System.err.println("ERROR: " + e.getMessage());
-            JOptionPane.showMessageDialog(null, e.getMessage(), "Missing Dependency", JOptionPane.ERROR_MESSAGE);
+            if (!lwjgl3Enabled) JOptionPane.showMessageDialog(null, e.getMessage(), "Missing Dependency", JOptionPane.ERROR_MESSAGE);
         } catch (DuplicateModIDException e) {
             System.err.println("ERROR: " + e.getMessage());
-            JOptionPane.showMessageDialog(null, e.getMessage(), "Duplicate Mod ID", JOptionPane.ERROR_MESSAGE);
+            if (!lwjgl3Enabled) JOptionPane.showMessageDialog(null, e.getMessage(), "Duplicate Mod ID", JOptionPane.ERROR_MESSAGE);
         } catch (Exception e) {
             e.printStackTrace();
         }

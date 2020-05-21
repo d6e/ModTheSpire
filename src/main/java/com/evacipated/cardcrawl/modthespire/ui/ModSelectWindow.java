@@ -296,7 +296,7 @@ public class ModSelectWindow extends JFrame
                 cmd.add("-XstartOnFirstThread"); // have to do special launcher options after libgdx199
                 cmd.add("-cp");
                 cmd.add(mts_jar_path);
-                cmd.add("com.evacipated.cardcrawl.modthespire.Launcher");
+                cmd.add("com.evacipated.cardcrawl.modthespire.Loader");
                 List<String> modPaths = new ArrayList<>();
                 for (File mod : modList.getCheckedMods()){
                     modPaths.add(mod.getPath());
