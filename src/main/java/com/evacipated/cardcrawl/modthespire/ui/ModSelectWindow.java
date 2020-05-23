@@ -310,7 +310,9 @@ public class ModSelectWindow extends JFrame
                     pb.start();
                 } catch (IOException e) {
                     e.printStackTrace();
+                    System.exit(1);
                 }
+                System.exit(0);
             } else {
                 Thread t = new Thread(() -> {
                     // Build array of selected mods

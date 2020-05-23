@@ -13,9 +13,6 @@ import javassist.ClassPool;
 import javassist.LoaderClassPath;
 import org.objectweb.asm.ClassReader;
 
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.WindowEvent;
 import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -24,8 +21,6 @@ import java.lang.reflect.UndeclaredThrowableException;
 import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.List;
-import java.util.Timer;
 import java.util.*;
 import java.util.function.BiConsumer;
 
@@ -44,7 +39,6 @@ public class Loader
     public static String STS_PATCHED_JAR = "desktop-1.0-patched.jar";
     public static String JRE_51_DIR = "jre1.8.0_51";
     public static ModInfo[] MODINFOS;
-    private static ModInfo[] ALLMODINFOS;
     private static ClassPool POOL;
 
     public static SpireConfig MTS_CONFIG;
@@ -54,7 +48,6 @@ public class Loader
     public static boolean allowBeta = true;
 
     static String[] ARGS;
-    private static ModSelectWindow ex;
 
     public static boolean isModLoaded(String modID)
     {
@@ -223,7 +216,7 @@ public class Loader
                         checkFileInfo(new File("SlayTheSpire.app/Contents"));
                         checkFileInfo(new File("SlayTheSpire.app/Contents/Resources"));
 
-                        JOptionPane.showMessageDialog(null, "Unable to find '" + STS_JAR + "'");
+                        SwingUtil.showMessageDialog("Unable to find '" + STS_JAR + "'");
                         return;
                     } else {
                         System.out.println("Using Mac version at: " + MAC_STS_JAR);
@@ -350,26 +343,18 @@ public class Loader
 
         findGameVersion();
 
-        EventQueue.invokeLater(() -> {
-            ALLMODINFOS = getAllMods(workshopInfos);
-            ex = new ModSelectWindow(ALLMODINFOS, skipLauncher);
-            ex.setVisible(true);
-
-            ex.warnAboutMissingVersions();
-
-            String java_version = System.getProperty("java.version");
-            if (!java_version.startsWith("1.8")) {
-                String msg = "ModTheSpire requires Java version 8 to run properly.\nYou are currently using Java " + java_version;
-                JOptionPane.showMessageDialog(null, msg, "Warning", JOptionPane.WARNING_MESSAGE);
-            }
-
-            ex.startCheckingForMTSUpdate();
-        });
-    }
-
-    public static void closeWindow()
-    {
-        ex.dispatchEvent(new WindowEvent(ex, WindowEvent.WINDOW_CLOSING));
+        /*
+        MTSClassLoader loader = null;
+        try {
+            loader = new MTSClassLoader(Loader.class.getResourceAsStream(COREPATCHES_JAR), buildUrlArray(MODINFOS), Loader.class.getClassLoader());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if (isLWJGL3Enabled(loader)) SwingUtil.checkForMTSUpdate(skipLauncher, workshopInfos);
+         */
+        if (!argList.contains("--run-with-mods")) {
+            SwingUtil.checkForMTSUpdate(skipLauncher, workshopInfos);
+        }
     }
 
     // runMods - sets up the ClassLoader, sets the isModded flag and launches the game
@@ -401,7 +386,7 @@ public class Loader
                 pool.insertClassPath(new LoaderClassPath(tmpPatchingLoader));
                 tmpPatchingLoader.addStreamToClassPool(pool); // Inserts infront of above path
 
-                MODINFOS = Patcher.sideloadMods(MTS_VERSION, tmpPatchingLoader, loader, pool, ALLMODINFOS, MODINFOS);
+                MODINFOS = Patcher.sideloadMods(MTS_VERSION, tmpPatchingLoader, loader, pool, SwingUtil.ALLMODINFOS, MODINFOS);
 
                 // Patch enums
                 System.out.printf("Patching enums...");
@@ -488,27 +473,22 @@ public class Loader
             Method method = cls.getDeclaredMethod("main", String[].class);
             method.invoke(null, (Object) ARGS);
             if (!DEBUG && !lwjgl3Enabled) {
-                new Timer().schedule(
-                    new TimerTask()
-                    {
-                        @Override
-                        public void run()
-                        {
-                            ex.setState(Frame.ICONIFIED);
-                        }
-                    },
-                    1000
-                );
+                SwingUtil.iconifyFrame();
             }
         } catch (MissingDependencyException e) {
             System.err.println("ERROR: " + e.getMessage());
-            if (!lwjgl3Enabled) JOptionPane.showMessageDialog(null, e.getMessage(), "Missing Dependency", JOptionPane.ERROR_MESSAGE);
+            if (!lwjgl3Enabled) SwingUtil.showMessageDialog(e.getMessage(), "Missing Dependency", SwingUtil.ICON_TYPE.ERROR_MESSAGE);
         } catch (DuplicateModIDException e) {
             System.err.println("ERROR: " + e.getMessage());
-            if (!lwjgl3Enabled) JOptionPane.showMessageDialog(null, e.getMessage(), "Duplicate Mod ID", JOptionPane.ERROR_MESSAGE);
+            if (!lwjgl3Enabled) SwingUtil.showMessageDialog(e.getMessage(), "Duplicate Mod ID", SwingUtil.ICON_TYPE.ERROR_MESSAGE);
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public static void closeWindow()
+    {
+        SwingUtil.closeWindow();
     }
 
     public static void setGameVersion(String versionString)
@@ -581,7 +561,7 @@ public class Loader
         return files;
     }
 
-    private static ModInfo[] getAllMods(List<SteamSearch.WorkshopInfo> workshopInfos)
+    static ModInfo[] getAllMods(List<SteamSearch.WorkshopInfo> workshopInfos)
     {
         List<ModInfo> modInfos = new ArrayList<>();
 
